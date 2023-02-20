@@ -14,7 +14,9 @@
  
 %{
 #include <string>
+#include<iostream>
 #include <unordered_map>
+#include<cstdio>
 using namespace std;
  
 string key;
@@ -24,7 +26,7 @@ int flag=0;
 %%
  
 "#def " {BEGIN(DEFINE); return 1;}
-<DEFINE>[a-zA-Z]+ {key = yytext; map[key]="1"; return 1;}
+<DEFINE>[a-zA-Z][a-zA-Z0-9]* {key = yytext; map[key]="1"; return 1;}
 <DEFINE>[\n]+ {BEGIN(INITIAL); return 1;}
 <DEFINE>" " {BEGIN(DEFINE2); return 1;}
 <DEFINE2>[^\\\n]+ {if(map[key] == "1") map[key] = ""; map[key] += yytext; return 5;}
@@ -32,11 +34,12 @@ int flag=0;
 <DEFINE2>[\n]+ {BEGIN(INITIAL); return 1;}
  
 "#undef " {BEGIN(UNDEF); return 2;}
-<UNDEF>[a-zA-Z]+ {map.erase(yytext); return 2;}
+<UNDEF>[a-zA-Z][a-zA-Z0-9]* {map.erase(yytext); return 2;}
 <UNDEF>[ \n]+ {BEGIN(INITIAL); return 2;}
  
 "#ifdef "   { flag=1;  BEGIN(IFDEF);  return 6;}
-<IFDEF>[a-zA-Z0-9]+ {
+<IFDEF>[a-zA-Z][a-zA-Z0-9]* {
+    printf("\n5555\n");
     key= yytext;
     if(map.find(yytext) != map.end()) {
         flag=2;
@@ -48,7 +51,7 @@ int flag=0;
 }  
 <IFDEF>[ \n]+ {BEGIN(INITIAL); return 6;}
 <VALID>[ \n]+ {BEGIN(INITIAL);  return 6;}
-<ENDIF>[^"#elif""endif"]* 
+<ENDIF>[^"#elif""#endif"]* 
 <ENDIF>"#elif "  {BEGIN(IFDEF); return 7;}
 <ENDIF>"#endif " {BEGIN(INITIAL); return 7;}
  
@@ -60,9 +63,9 @@ int flag=0;
         BEGIN(SKIP);    return 10;
     }        
     BEGIN(INITIAL);}
-
-<SKIP>[^"endif"]*
-<SKIP>"endif" {BEGIN(INITIAL);} 
+ 
+<SKIP>^[^#][^e][^n][^d][^i][^f].* {printf("123 %s\n",yytext);return 44;}
+<SKIP>#endif {printf("22 %s\n",yytext); BEGIN(INITIAL);} 
  
 "/*"         BEGIN(comment);
 <comment>[^*]*        /* eat anything that's not a '*' */
@@ -72,7 +75,7 @@ int flag=0;
 "//"    BEGIN(comment2);
 <comment2>. /* om nom */
 <comment2>[ \n]+ {BEGIN(INITIAL);}
- 
-[a-zA-Z]+ {return 3;}
+[\n ] {return 4;}
+[a-zA-Z][a-zA-Z0-9]* {return 3;}
 . {return 4;}
 %%
