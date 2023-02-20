@@ -51,9 +51,11 @@ int flag=0;
 }  
 <IFDEF>[ \n]+ {BEGIN(INITIAL); return 6;}
 <VALID>[ \n]+ {BEGIN(INITIAL);  return 6;}
-<ENDIF>[^"#elif""#endif"]* 
+<ENDIF>^[^#][^e][^l][^i][^f].*
+<ENDIF>^[^#][^e][^n][^d][^i][^f].*
+ 
 <ENDIF>"#elif "  {BEGIN(IFDEF); return 7;}
-<ENDIF>"#endif " {BEGIN(INITIAL); return 7;}
+<ENDIF>"#endif" {BEGIN(INITIAL); return 7;}
  
 "#endif"   {if(flag==0)    return 9;   flag=0;    BEGIN(INITIAL);}
  
