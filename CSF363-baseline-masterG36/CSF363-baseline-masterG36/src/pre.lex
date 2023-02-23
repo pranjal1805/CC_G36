@@ -8,7 +8,8 @@
 %x DEFINE2
 %x UNDEF
 %x IFDEF
-%x VALID
+%x ELIF
+%x ELSE
 %x ENDIF
 %x SKIP
 
@@ -20,8 +21,8 @@
 using namespace std;
 
 string key;
-unordered_map<string, string> map;
-int flag=0;
+unordered_map <string, string> map;
+int flag=0, val=0;
 %}
 %%
 
@@ -37,45 +38,60 @@ int flag=0;
 <UNDEF>[a-zA-Z][a-zA-Z0-9]* {map.erase(yytext); return 2;}
 <UNDEF>[ \n]+ {BEGIN(INITIAL); return 2;}
 
-"#ifdef "   { flag=1;  BEGIN(IFDEF);  return 6;}
+
+"#ifdef " {BEGIN(IFDEF); return 6;}
 <IFDEF>[a-zA-Z][a-zA-Z0-9]* {
-    printf("\n5555\n");
-    key= yytext;
-    if(map.find(yytext) != map.end()) {
-        flag=2;
-        BEGIN(VALID);
-    } else {
-        BEGIN(ENDIF);
-    }
-    return 6;
-}  
+val=1;
+key=yytext;
+if(map.find(key) != map.end()) {
+    flag=1;
+} else {
+    BEGIN(SKIP);
+}
+return 6;
+}
 <IFDEF>[ \n]+ {BEGIN(INITIAL); return 6;}
-<VALID>[ \n]+ {BEGIN(INITIAL);  return 6;}
-<ENDIF>^[^#][^e][^l][^i][^f].*
-<ENDIF>^[^#][^e][^n][^d][^i][^f].*
-<ENDIF>^[^#][^e][^l][^s][^e].*
 
-<ENDIF>"#elif "  {BEGIN(IFDEF); return 7;}
-<ENDIF>"#endif" {BEGIN(INITIAL); return 7;}
-<ENDIF>"#else" {BEGIN(INITIAL); return 7;}
 
-"#endif"   {if(flag==0)    return 9;   flag=0;    BEGIN(INITIAL);}
+"#elif " {BEGIN(ELIF); return 6;}
+<ELIF>[a-zA-Z][a-zA-Z0-9]* {
+if(val==0){
+    return 8;
+}
+key=yytext;
+val=2;
+if(map.find(key) != map.end() && flag==0) {
+    flag=1;
+} else {
+    BEGIN(SKIP);
+}
+return 6;
+}
+<ELIF>[ \n]+ {BEGIN(INITIAL); return 6;}
 
-"#elif"    {
-    if(flag==0)    return 8;  
-    if(flag==2){
-        BEGIN(SKIP);    return 10;
-    }        
-    BEGIN(INITIAL);}
 
-"#else" {
-    if(flag==2){
-        BEGIN(SKIP);    return 10;
-    }
-    BEGIN(INITIAL);}
+"#else" {BEGIN(ELSE); return 6;}
+<ELSE>[ \n]+ {
+if(val==0 || val==1){
+    return 11;
+}
+val=3;
+if(flag==0) {
+    flag=1;
+    BEGIN(INITIAL);
+} else {
+    BEGIN(SKIP);
+}
+return 6;
+}
 
-<SKIP>^[^#][^e][^n][^d][^i][^f].* {printf("123 %s\n",yytext);return 44;}
-<SKIP>#endif {printf("22 %s\n",yytext); BEGIN(INITIAL);} 
+"#endif" {BEGIN(ENDIF); return 6;}
+<ENDIF>[ \n]+ {if(val==0){return 9;} flag=0; BEGIN(INITIAL); return 6;}
+
+<SKIP>[^(?!.*(#elif|#else|#endif)).*$] {return 6;}
+<SKIP>"#else" {BEGIN(ELSE); return 6;}
+<SKIP>"#endif" {BEGIN(ENDIF); return 6;}
+<SKIP>"#elif " {BEGIN(ELIF); return 6;}
 
 "/*"         BEGIN(comment);
 <comment>[^*]*        /* eat anything that's not a '*' */
@@ -83,7 +99,7 @@ int flag=0;
 <comment>"*"+"/"        {BEGIN(INITIAL);}
 
 "//"    BEGIN(comment2);
-<comment2>. /* om nom */
+<comment2>.
 <comment2>[ \n]+ {BEGIN(INITIAL);}
 [\n ] {return 4;}
 [a-zA-Z][a-zA-Z0-9]* {return 3;}
